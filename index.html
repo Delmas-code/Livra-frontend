@@ -552,7 +552,7 @@
                     this.addMessage('bot', errorMessage, true);
                 } else {
                     // Handle successful responses
-                    const botMessage = `${response.message}${response.data}` || 'I received your message but couldn\'t generate a response.';
+                    const botMessage = `${response.message}` || 'I received your message but couldn\'t generate a response.';
                     this.addMessage('bot', botMessage);
                 }
             }

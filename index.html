@@ -383,7 +383,7 @@
                 this.reconnectTimer = null;
                 
                 // Configuration - Update these to match your WebSocket server
-                this.socketHost = 'tribu.dev.instanvi.com/livra';
+                this.socketHost = "tribu.dev.instanvi.com/livra/"
                 this.socketPort = 8080;
                 
                 // Generate a unique user session
@@ -429,7 +429,7 @@
                     this.updateConnectionStatus('connecting', 'Connecting...');
                     
                     // Create WebSocket connection
-                    const wsUrl = `ws://${this.socketHost}:${this.socketPort}`;
+                    const wsUrl = `wss://${this.socketHost}`;
                     this.socket = new WebSocket(wsUrl);
                     
                     // Connection opened

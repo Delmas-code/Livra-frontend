@@ -58,7 +58,7 @@
         }
 
         .bot-avatar::before {
-            content: '🤖';
+            content: '､';
             font-size: 24px;
             animation: bounce 3s infinite;
         }
@@ -300,6 +300,34 @@
             border-left: 4px solid #dc2626;
         }
 
+        /* Table specific styles */
+        .message-data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 14px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .message-data-table th,
+        .message-data-table td {
+            padding: 8px 12px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            text-align: left;
+        }
+
+        .message-data-table th {
+            background-color: #e2e8f0;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .message-data-table tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        
         /* Responsive Design */
         @media (max-width: 768px) {
             .chat-container {
@@ -456,7 +484,7 @@
                         } catch (error) {
                             console.error('Error parsing server response:', error);
                             this.hideTypingIndicator();
-                            this.addMessage('bot', 'Received invalid response from server.', true);
+                            this.addMessage('bot', 'Received invalid response from server.', null, true); // Pass null for data
                         }
                     };
                     
@@ -521,7 +549,7 @@
                         this.connect();
                     }, delay);
                 } else {
-                    this.addMessage('bot', 'Unable to connect to the server. Please refresh the page to try again.', true);
+                    this.addMessage('bot', 'Unable to connect to the server. Please refresh the page to try again.', null, true); // Pass null for data
                     this.updateConnectionStatus('disconnected', 'Connection failed');
                 }
             }
@@ -549,11 +577,12 @@
                             errorMessage = response.message || 'An unknown error occurred.';
                     }
                     
-                    this.addMessage('bot', errorMessage, true);
+                    this.addMessage('bot', errorMessage, null, true); // Pass null for data
                 } else {
                     // Handle successful responses
                     const botMessage = `${response.message}` || 'I received your message but couldn\'t generate a response.';
-                    this.addMessage('bot', botMessage);
+                    const botData = response.data || null; // Extract the data field
+                    this.addMessage('bot', botMessage, botData);
                 }
             }
             
@@ -592,14 +621,12 @@
                 } catch (error) {
                     console.error('Failed to send message:', error);
                     this.hideTypingIndicator();
-                    this.addMessage('bot', 'Failed to send message. Please check your connection.', true);
+                    this.addMessage('bot', 'Failed to send message. Please check your connection.', null, true); // Pass null for data
                     this.handleConnectionError();
                 }
             }
             
-
-            
-            addMessage(sender, content, isError = false) {
+            addMessage(sender, content, data = null, isError = false) {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `message ${sender}`;
                 
@@ -609,13 +636,76 @@
                 
                 const messageContent = document.createElement('div');
                 messageContent.className = `message-content ${isError ? 'error-message' : ''}`;
-                messageContent.textContent = content;
+                messageContent.textContent = content; // Set the text message
                 
                 messageDiv.appendChild(avatar);
                 messageDiv.appendChild(messageContent);
+
+                // Add data as a table if present
+                if (data) {
+                    const dataTable = this.createDataTable(data);
+                    messageContent.appendChild(dataTable); // Append the table inside message-content
+                }
                 
                 this.chatMessages.appendChild(messageDiv);
                 this.scrollToBottom();
+            }
+
+            createDataTable(data) {
+                const table = document.createElement('table');
+                table.classList.add('message-data-table');
+
+                // Determine if data is a single object or an array of objects
+                const isArray = Array.isArray(data);
+                const dataToProcess = isArray ? data : [data];
+
+                if (dataToProcess.length === 0) {
+                    const noDataRow = table.insertRow();
+                    const cell = noDataRow.insertCell();
+                    cell.colSpan = 2; // Span across two columns (key and value)
+                    cell.textContent = 'No data available.';
+                    return table;
+                }
+
+                // Get all unique headers (keys) from all objects
+                let headers = new Set();
+                dataToProcess.forEach(item => {
+                    if (typeof item === 'object' && item !== null) {
+                        Object.keys(item).forEach(key => headers.add(key));
+                    }
+                });
+                headers = Array.from(headers); // Convert Set to Array for consistent order
+
+                if (headers.length > 0) {
+                    // Create table header
+                    const thead = table.createTHead();
+                    const headerRow = thead.insertRow();
+                    headers.forEach(headerText => {
+                        const th = document.createElement('th');
+                        th.textContent = headerText;
+                        headerRow.appendChild(th);
+                    });
+
+                    // Create table body
+                    const tbody = table.createTBody();
+                    dataToProcess.forEach(item => {
+                        if (typeof item === 'object' && item !== null) {
+                            const row = tbody.insertRow();
+                            headers.forEach(header => {
+                                const cell = row.insertCell();
+                                cell.textContent = item[header] !== undefined ? item[header] : ''; // Handle missing keys
+                            });
+                        }
+                    });
+                } else {
+                     // If there are no headers (e.g., empty objects in array), display a message
+                    const noDataRow = table.insertRow();
+                    const cell = noDataRow.insertCell();
+                    cell.colSpan = 2; 
+                    cell.textContent = 'No structured data to display.';
+                }
+
+                return table;
             }
             
             showTypingIndicator() {
